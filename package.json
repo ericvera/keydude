@@ -1,8 +1,9 @@
 {
   "name": "keydude",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Simplified and opinionated crypto library (wraps the Web Crypto API)",
-  "main": "index.js",
+  "main": "dist/keydude.js",
+  "module": "src/index.js",
   "repository": "https://github.com/ericvera/keydude.git",
   "author": "Eric Vera <hey@itsmeeric.com>",
   "license": "MIT",
