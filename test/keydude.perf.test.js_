@@ -1,0 +1,172 @@
+const fs = require('fs')
+const puppeteer = require('puppeteer')
+
+jest.setTimeout(90000)
+;(async () => {
+  /*const sleep = ms => {
+    return new Promise(resolve => setTimeout(resolve, ms))
+  }*/
+
+  const browser = await puppeteer.launch()
+  const page = await browser.newPage()
+
+  // NOTE: Required ot navigate to a file. `window.crypto.subtle` is not available in 'new tab' context.
+  await page.goto('file:///dev/null')
+
+  await page.on('console', msg => {
+    console.log(msg.text())
+    /*for (let i = 0; i < msg.args().length; ++i)
+        console.log(`${i}: ${msg.text()}`)*/
+  })
+
+  // Load scripts into browser context
+  await page.addScriptTag({
+    content: `${fs.readFileSync('./dist/keydude.js')}`
+  })
+  await page.addScriptTag({
+    content: `${fs.readFileSync('./test/testdata.perf.js')}`
+  })
+  await page.addScriptTag({
+    url: 'https://cdn.jsdelivr.net/npm/lodash@4.17.11/lodash.min.js'
+  })
+  await page.addScriptTag({
+    url: 'https://cdn.jsdelivr.net/npm/benchmark@2.1.4/benchmark.min.js'
+  })
+
+  const result = await page.evaluate(async () => {
+    console.log('starting...')
+    /*const sleep = ms => {
+          return new Promise(resolve => setTimeout(resolve, ms))
+        }*/
+
+    const unwrappedKey = await keydude.unwrapKey(
+      '123456',
+      TestData.passphraseIV,
+      TestData.wrappedKey
+    )
+
+    //await sleep(10000)
+
+    let fastest = ''
+
+    const suite = new Benchmark.Suite('encryption', {
+      onStart: () => {
+        //console.log('suite//start')
+      },
+      onCycle: () => {
+        //console.log('suite//cycle')
+      },
+      onAbort: () => {
+        console.log('suite//abort')
+      },
+      onError: () => {
+        console.log('suite//error')
+      },
+      onReset: () => {
+        console.log('suite//reset')
+      },
+      onComplete: () => {
+        //console.log('suite//complete')
+      }
+    })
+
+    const dataIndex = 2
+
+    // add tests
+    suite
+      .add('original', {
+        // a flag to indicate the benchmark is deferred
+        defer: true,
+
+        // benchmark test function
+        fn: function(deferred) {
+          keydude
+            .encrypt(TestData.objectToEncrypt[dataIndex], unwrappedKey)
+            .then(() => {
+              deferred.resolve()
+            })
+        }
+      })
+      .add('without compression', {
+        // a flag to indicate the benchmark is deferred
+        defer: true,
+
+        // benchmark test function
+        fn: function(deferred) {
+          keydude
+            ._encryptWithoutCompression(
+              TestData.objectToEncrypt[dataIndex],
+              unwrappedKey
+            )
+            .then(() => {
+              deferred.resolve()
+            })
+        }
+      })
+      .add('compression on base 64', {
+        // a flag to indicate the benchmark is deferred
+        defer: true,
+
+        // benchmark test function
+        fn: function(deferred) {
+          keydude
+            ._encryptWithCompressionOnBase64(
+              TestData.objectToEncrypt[dataIndex],
+              unwrappedKey
+            )
+            .then(() => {
+              deferred.resolve()
+            })
+        }
+      })
+      .add('single string IO', {
+        // a flag to indicate the benchmark is deferred
+        defer: true,
+
+        // benchmark test function
+        fn: function(deferred) {
+          keydude
+            ._encryptSingleStringIO(
+              TestData.objectToEncrypt[dataIndex],
+              unwrappedKey
+            )
+            .then(() => {
+              deferred.resolve()
+            })
+        }
+      })
+      .add('concat arrays', {
+        // a flag to indicate the benchmark is deferred
+        defer: true,
+
+        // benchmark test function
+        fn: function(deferred) {
+          keydude
+            ._encryptConcatArrays(
+              TestData.objectToEncrypt[dataIndex],
+              unwrappedKey
+            )
+            .then(() => {
+              deferred.resolve()
+            })
+        }
+      })
+      // add listeners
+      .on('cycle', event => {
+        //console.log('cycle')
+        console.log(String(event.target))
+        fastest = 'event.target'
+      })
+      .on('complete', () => {
+        console.log('complete!')
+        //fastest = 'Fastest is ' + this.filter('fastest').map('name')
+        //console.log('Fastest is ' + this.filter('fastest').map('name'))
+      })
+      // run async
+      .run({ async: false })
+
+    return fastest
+  })
+})()
+
+it('asd', async () => {})
