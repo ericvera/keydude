@@ -1,12 +1,16 @@
 const fs = require('fs')
-const TestData = require('./testdata')
 
 describe('Keydude', () => {
   beforeAll(async () => {
+    // NOTE: Required ot navigate to a file. `window.crypto.subtle` is not available in 'new tab' context.
     await page.goto('file:///dev/null')
-    await page.addScriptTag({ content: `${fs.readFileSync('./keydude.js')}` })
+
+    // Load scripts into browser context
     await page.addScriptTag({
-      content: `${fs.readFileSync('./testdata.js')}`
+      content: `${fs.readFileSync('./dist/keydude.js')}`
+    })
+    await page.addScriptTag({
+      content: `${fs.readFileSync('./test/testdata.js')}`
     })
   })
 

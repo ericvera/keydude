@@ -4,6 +4,8 @@ const LZString = require('lz-string')
 // NOTE: Recomended IV size in 96 bits (find source). In the case of a Uint8Array that is 12 elements.
 const IVSIZE = 12
 // NOTE: Using AES-GCM as it is recommended for security and perf
+// Reference: https://en.wikipedia.org/wiki/Galois/Counter_Mode
+// Reference: https://blog.cryptographyengineering.com/2012/05/19/how-to-choose-authenticated-encryption/
 const ALGORITHM = 'AES-GCM'
 const DIGESTALGORITHM = 'SHA-256'
 const LENGTHOFKEY = 256
@@ -65,8 +67,8 @@ const generateRawIV = async () => {
 //
 
 /**
- * Generate a secure 96-bit initialization vector and returns it base64 encoded
- * @returns {Promise<String>} The string is base64 encoded
+ * Generate a secure 96-bit initialization vector and returns it as a base64 encoded string.
+ * @returns {Promise<String>} base64 encoded IV
  */
 const generateIV = async () => {
   const iv = await generateRawIV()
@@ -92,7 +94,7 @@ const generateEncryptionDecryptionKey = async () => {
 }
 
 /**
- * Wrap (encode) the key using a key generated from the passphrase
+ * Wrap (encode) the key using a key generated from the passphrase.
  * @param {String} passphrase passphrase used to generate the key used to wrap the provided key
  * @param {String} base64PassphraseIV base64 encoded initiation vector used to generate the wrapping key
  * @param {CryptoKey} keyToWrap key to wrap so that it can be stored
@@ -152,7 +154,7 @@ const unwrapKey = async (passphrase, base64PassphraseIV, wrappedKeyObject) => {
 }
 
 /**
- * This will JSON.stringify, compress, and finally encrypt the provided object
+ * This will JSON.stringify, compress, and finally encrypt the provided object.
  * @param {Object} dataObject Object to be encrypted
  * @param {CryptoKey} encryptionDecryptionKey Key used to encrypt the object
  * @returns {Promise<{ed: String, iv: String}>} Object containing, base64 encoded, encrypted data (data) and iv
@@ -187,7 +189,7 @@ const encrypt = async (dataObject, encryptionDecryptionKey) => {
 }
 
 /**
- * Call this on the result of an encrypt call in order to decrypt the object
+ * Call this on the result of an encrypt call in order to decrypt the object.
  * @param {{ed: String, iv: String}} encryptedDataObject Object containing, base64 encoded, encrypted data (data) and iv
  * @param {CryptoKey} encryptionDecryptionKey Key used to decrypt the object
  * @returns {Object} Decrypted object (decompressed and JSON.parse called to reverse encrypt process)

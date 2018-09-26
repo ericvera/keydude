@@ -1,3 +1,6 @@
+# Compiled (by webpack)
+dist
+
 # Logs
 logs
 *.log
