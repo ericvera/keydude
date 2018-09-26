@@ -1,6 +1,6 @@
 {
   "name": "keydude",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Simplified and opinionated crypto library (wraps the Web Crypto API)",
   "main": "dist/keydude.js",
   "module": "src/index.js",
