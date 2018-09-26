@@ -12,7 +12,7 @@ const LENGTHOFKEY = 256
 
 /**
  * (Internal) Convests the provided string to an Uint8Array
- * @param {String} text Text to convert
+ * @param {String} text
  * @returns {Uint8Array}
  */
 const toUint8Array = text => {
@@ -23,6 +23,20 @@ const toUint8Array = text => {
   }
 
   return array
+}
+
+/**
+ * (Internal) Convests the provided Uint8Array to a string
+ * @param {Uint8Array} uint8Array
+ * @returns {String}
+ */
+const toString = uint8Array => {
+  var str = ''
+  for (var iii = 0; iii < uint8Array.byteLength; iii++) {
+    str += String.fromCharCode(uint8Array[iii])
+  }
+
+  return str
 }
 
 /**
@@ -189,6 +203,42 @@ const encrypt = async (dataObject, encryptionDecryptionKey) => {
 }
 
 /**
+ * This will JSON.stringify, compress, and finally encrypt the provided object.
+ * @param {Object} dataObject Object to be encrypted
+ * @param {CryptoKey} encryptionDecryptionKey Key used to encrypt the object
+ * @returns {Promise<{ed: String, iv: String}>} Object containing, base64 encoded, encrypted data (data) and iv
+ */
+const _encryptWithoutCompression = async (
+  dataObject,
+  encryptionDecryptionKey
+) => {
+  // Source : https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/encrypt
+
+  // Generate a new IV
+  const iv = await generateRawIV()
+
+  // Stringify and compressthe dataObject
+  const arrayBufferToEncrypt = toUint8Array(JSON.stringify(dataObject))
+
+  // Define algorithm
+  // NOTE: Use AES-GCM based on recommendations at https://en.wikipedia.org/wiki/Galois/Counter_Mode
+  const algorithm = { name: ALGORITHM, iv }
+
+  // Encrypt
+  const dataBuffer = await crypto.subtle.encrypt(
+    algorithm,
+    encryptionDecryptionKey,
+    arrayBufferToEncrypt
+  )
+
+  // Convert to base64 for easy storage
+  const dataString = base64js.fromByteArray(new Uint8Array(dataBuffer))
+  const ivString = base64js.fromByteArray(iv)
+
+  return { ed: dataString, iv: ivString }
+}
+
+/**
  * Call this on the result of an encrypt call in order to decrypt the object.
  * @param {{ed: String, iv: String}} encryptedDataObject Object containing, base64 encoded, encrypted data (data) and iv
  * @param {CryptoKey} encryptionDecryptionKey Key used to decrypt the object
@@ -216,6 +266,44 @@ const decrypt = async (encryptedDataObject, encryptionDecryptionKey) => {
   const decryptedStringifiedObject = LZString.decompressFromUint8Array(
     new Uint8Array(decryptedData)
   )
+
+  // Convert from stringified back to JSON object
+  const decryptedObject = JSON.parse(decryptedStringifiedObject)
+
+  // Return decrypted object
+  return decryptedObject
+}
+
+/**
+ * Call this on the result of an encrypt call in order to decrypt the object.
+ * @param {{ed: String, iv: String}} encryptedDataObject Object containing, base64 encoded, encrypted data (data) and iv
+ * @param {CryptoKey} encryptionDecryptionKey Key used to decrypt the object
+ * @returns {Object} Decrypted object (decompressed and JSON.parse called to reverse encrypt process)
+ */
+const _decryptWithoutCompression = async (
+  encryptedDataObject,
+  encryptionDecryptionKey
+) => {
+  // Source: https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/decrypt
+
+  // Convert the data from base64 to byte array
+  const encryptedData = base64js.toByteArray(encryptedDataObject.ed)
+  const encryptedDataIv = base64js.toByteArray(encryptedDataObject.iv)
+
+  // Define algorithm
+  // NOTE: User AES-GCM based on recommendations at https://en.wikipedia.org/wiki/Galois/Counter_Mode
+  const algorithm = { name: ALGORITHM, iv: encryptedDataIv }
+
+  // Decrypt
+  const decryptedData = await crypto.subtle.decrypt(
+    algorithm,
+    encryptionDecryptionKey,
+    encryptedData
+  )
+
+  // Convert to string
+  //TODO: TEST encrypt/decrypt without compression
+  const decryptedStringifiedObject = toString(new Uint8Array(decryptedData))
 
   // Convert from stringified back to JSON object
   const decryptedObject = JSON.parse(decryptedStringifiedObject)
