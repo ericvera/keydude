@@ -35,5 +35,16 @@
   },
   "jest": {
     "preset": "jest-puppeteer"
-  }
+  },
+  "keywords": [
+    "security",
+    "crypto",
+    "cryptography",
+    "encryption",
+    "encoding",
+    "web",
+    "web crypto",
+    "utilities",
+    "aes-gcm"
+  ]
 }
