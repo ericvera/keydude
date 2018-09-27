@@ -4,7 +4,7 @@
 [![npm version](https://img.shields.io/npm/v/keydude.svg?style=flat-square)](https://npmjs.org/package/keydude)
 [![tested with jest](https://img.shields.io/badge/tested_with-jest-99424f.svg?style=flat-square)](https://github.com/facebook/jest)
 
-Simplified and opinionated crypto library (wraps the Web Crypto API)
+Simplified and opinionated crypto library (wraps the Web Crypto API) for end-to-end encryption.
 
 ## Why keydude?
 
@@ -18,23 +18,23 @@ This cryptography thing is a pain to figure out and easy to get wrong. The libra
 
 DISCLAIMER: This is a high level explanation to get you started and not meant to be a replacement for security training.
 
-In a simplistic way, symmetric encryption is when you use the same key for both encryption and decryption. As opposed to asymmetric encryption where you have a public key that anybody can see to encrypt the data and a private key that you have to keep secret to decrypt the data. Symmetric encryption is better for when you will be both encrypting and decrypting your own data and asymmetric is better when you are sending/receiving the data between different people.
+In a simplistic way, symmetric encryption is when you use the same key for both encryption and decryption. As opposed to asymmetric encryption where you have a public key that you can freely share used to encrypt the data and a private key that you have to keep secret used to decrypt the data. Symmetric encryption is better for when you will be both encrypting and decrypting your own data and asymmetric is better when you are sending/receiving the data between different people since anybody can use the public key to encrypt data that only you (or anyone with the private key) can read.
 
 ### Key management
 
-For symmetric encryption you need a key. You can generate this key using `keydude.generateEncryptionDecryptionKey()`. You want to keep this key secret. You also want to make it so that if somebody gets access to it they can't just use it to decode your data. For this you 'wrap' the key. This is the equivalent of putting a physical key inside a safe box with password. For this you use `keydude.wrapKey()`.
+For symmetric encryption you need a key. You can generate this key using `keydude.generateEncryptionDecryptionKey()`. You must keep this key secret. You also want to make it so that if somebody gets access to it they can't just use it to decode all of your data. For this you 'wrap' the key before putting it in persistent storage using `keydude.wrapKey()`. This is the equivalent of putting a physical key inside a safe box with password.
 
-Wrapping a key requires two things, a passphrase and an initialization vector (IV). The passphrase is easy to understand, you can generate one for each user (you are still able to decode the data if you really wanted to) or you can let the user provide it in the client and not store it anywhere if you want the user data to be completely inaccessible to you. The initialization vector sounds fancy, but it is just an array of cryptographicaly random bytes used to make the encryption more secure.
+Wrapping a key requires two things, a passphrase and an initialization vector (IV). The passphrase is easy to understand, you can generate one for each user (you, the developer, will be able to decode the data if you want to) or you can let the user provide it in the client and not store it anywhere (the user data will be completely inaccessible to you the developer). The initialization vector sounds fancy, but it is just an array of cryptographicaly random bytes used to make the encryption more secure.
 
-OK that may require a bit more of explaining. The AES-GCM algorithm is a block-cypher which is fancy speak for 'it encrypts blocks of data a predetermined size at a time'. So if you had repeating blocks encrypted with the same key they would look the same. The initialization vector provided with each encrypting is used by the algorithm to prevent these blocks from being the same.
+OK that may require a bit more of explaining. The AES-GCM algorithm is a block-cypher which is fancy speak for 'it encrypts blocks of data of a predetermined size at a time'. So if you had repeating blocks encrypted with the same key they would look the same. The initialization vector provided with each encrypting is used by the algorithm to prevent these blocks from being the same.
 
-You can generate the IV using `keydude.generateIV()` which returns a base64 encoded IV. You will have to generate one and store it as you will have to provide it every time you wrap and unwrap your encryption/decryption key.
+You can generate the IV using `keydude.generateIV()` which returns a base64 encoded string. You will have to generate one and store it as you will have to provide it every time you wrap and unwrap your encryption/decryption key.
 
-In summary you, generate a new key for a user with `keydude.generateEncryptionDecryptionKey()`, generate an IV using `keydude.generateIV()`, then wrap that key with `keydude.wrapKey('somepassword', <generated IV>, <generated key>)`. You can store the generated IV and the wrapped key in the database. When you need to use the key to encrypt/decrypt just use `keydude.unwrapKey('somepassword', <generated IV>, <wrapped key>)`. Finally, for convenience, if you are in a trusted client, once the user provides the passphrase and you download and unwrap the key you can re-wrap it and store it locally using some other passphrase so that the user does not have to keep entering the password. This could be using a PIN or some piece of user data like a user id.
+In summary you, generate a new key for a user with `keydude.generateEncryptionDecryptionKey()`, generate an IV using `keydude.generateIV()`, then wrap that key with `keydude.wrapKey(<passphrase>, <generated IV>, <generated key>)`. You can store the generated IV and the wrapped key in the database. When you need to use the key to encrypt/decrypt just use `keydude.unwrapKey(<passphrase>, <generated IV>, <wrapped key>)`. Finally, for convenience, if you are in a trusted client, once the user provides the passphrase and you download and unwrap the key you can re-wrap it and store it locally using some other passphrase so that the user does not have to keep entering the password. This could be using a PIN or some piece of user data like a user id.
 
 ### Encryption and decryption
 
-After key management, this part is going to look very easy. Using the key that you extracted from `keydude.unwrapKey()` you can encrypt your data using `keydude.encrypt(<data object>, <unwrapped key>)`. This will return a single base64 encoded string containing both a new initialization vector (you have to generate a new one for every encryption/decryption for the algorithm to be secure) and the encrypted data. You can safely store this in you database or local storage.
+After key management, this part is going to be very easy. Using the key that you extracted from `keydude.unwrapKey()` you can encrypt your data using `keydude.encrypt(<data object>, <unwrapped key>)`. This will return a single base64 encoded string containing both a new initialization vector (`encrypt` generates a new one for every encryption/decryption for the algorithm to be secure) and the encrypted data. You can safely store this in you database or local storage.
 
 Whenever you want to access this information again just call `keydude.decrypt(<encrypted data generated with keydude.encrypt()>, <unwrapped key>)`.
 
@@ -52,7 +52,7 @@ Whenever you want to access this information again just call `keydude.decrypt(<e
 
 ### Sample
 
-All functions return a Promise. Using async/await here because it is easier to read.
+All functions return a Promise. The sample uses async/await because it is easier to read.
 
 ```javascript
 import keydude from 'keydude'
@@ -106,7 +106,7 @@ const decryptedData = await keydude.decrypt(encryptedData, unwrappedKey)
 
 AES-GCM is used as the algorithm for encryption and decryption as well as wrapping and unwrapping keys.
 
-After hours of research I found that many articles point to AES-GCM as the algorithm that strikes the best balance of security and performance. Here are a couple of quotes from the wikipedia article on
+After hours of research I found that many articles point to AES-GCM as the algorithm that strikes the best balance of security and performance. Here are a couple of quotes from the Wikipedia article on GCM.
 
 > "Galois/Counter Mode (GCM) is a mode of operation for symmetric key cryptographic block ciphers that has been widely adopted because of its efficiency and performance."
 
@@ -120,7 +120,7 @@ The output of all data that is meant to be stored (everything except the generat
 
 ### SHA-256
 
-The key used to wrap/unwrap the encryption/decryption keys is generated from a passphrase. A SHA-256 hash is generated from the password which is then used to generate a 256-bit key.
+The key used to wrap/unwrap the encryption/decryption keys is generated from a passphrase. A SHA-256 hash is generated from the passphrase which is then used to generate a 256-bit key.
 
 ### 96-bit initialization vector
 
