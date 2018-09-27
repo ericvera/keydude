@@ -128,4 +128,4 @@ I was not able to find a reliable source with recommendations for iv length. Wha
 
 > "The default length of the IV is 96 bits,[...]"
 
-> from [Authentication Failures in NIST version of GCM](https://csrc.nist.gov/csrc/media/projects/block-cipher-techniques/documents/bcm/joux_comments.pdf)
+> _from [Authentication Failures in NIST version of GCM](https://csrc.nist.gov/csrc/media/projects/block-cipher-techniques/documents/bcm/joux_comments.pdf)_
