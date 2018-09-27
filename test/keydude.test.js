@@ -69,8 +69,6 @@ describe('Keydude', () => {
       return keydude.encrypt(TestData.objectToEncrypt, unwrappedKey)
     })
 
-    console.log(`encrypted data: ${encryptedData}`)
-
     expect(typeof encryptedData).toEqual('string')
     // base64 strings have length that is a multiple of 4
     expect(encryptedData.length % 4).toBe(0)
