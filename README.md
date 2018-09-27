@@ -6,7 +6,7 @@
 
 Simplified and opinionated crypto library (wraps the Web Crypto API)
 
-# Why keydude?
+## Why keydude?
 
 This cryptography thing is a pain to figure out and easy to get wrong. The library was built to implement symmetric end-to-end encryption in a web app.
 
@@ -14,13 +14,13 @@ This cryptography thing is a pain to figure out and easy to get wrong. The libra
 - `AES-GCM` for wrapping and encryption
 - `Base64` as the output
 
-# The basics
+## The basics
 
 DISCLAIMER: This is a high level explanation to get you started and not meant to be a replacement for security training.
 
 In a simplistic way, symmetric encryption is when you use the same key for both encryption and decryption. As opposed to asymmetric encryption where you have a public key that anybody can see to encrypt the data and a private key that you have to keep secret to decrypt the data. Symmetric encryption is better for when you will be both encrypting and decrypting your own data and asymmetric is better when you are sending/receiving the data between different people.
 
-## Key management
+### Key management
 
 For symmetric encryption you need a key. You can generate this key using `keydude.generateEncryptionDecryptionKey()`. You want to keep this key secret. You also want to make it so that if somebody gets access to it they can't just use it to decode your data. For this you 'wrap' the key. This is the equivalent of putting a physical key inside a safe box with password. For this you use `keydude.wrapKey()`.
 
@@ -32,25 +32,25 @@ You can generate the IV using `keydude.generateIV()` which returns a base64 enco
 
 In summary you, generate a new key for a user with `keydude.generateEncryptionDecryptionKey()`, generate an IV using `keydude.generateIV()`, then wrap that key with `keydude.wrapKey('somepassword', <generated IV>, <generated key>)`. You can store the generated IV and the wrapped key in the database. When you need to use the key to encrypt/decrypt just use `keydude.unwrapKey('somepassword', <generated IV>, <wrapped key>)`. Finally, for convenience, if you are in a trusted client, once the user provides the passphrase and you download and unwrap the key you can re-wrap it and store it locally using some other passphrase so that the user does not have to keep entering the password. This could be using a PIN or some piece of user data like a user id.
 
-## Encryption and decryption
+### Encryption and decryption
 
 After key management, this part is going to look very easy. Using the key that you extracted from `keydude.unwrapKey()` you can encrypt your data using `keydude.encrypt(<data object>, <unwrapped key>)`. This will return a single base64 encoded string containing both a new initialization vector (you have to generate a new one for every encryption/decryption for the algorithm to be secure) and the encrypted data. You can safely store this in you database or local storage.
 
 Whenever you want to access this information again just call `keydude.decrypt(<encrypted data generated with keydude.encrypt()>, <unwrapped key>)`.
 
-# Usage
+## Usage
 
-## Install module
+### Install module
 
 `npm install --save keydude`
 
 `yarn add keydude`
 
-## In browser
+### In browser
 
 `<script crossorigin src="https://unpkg.com/keydude@1/dist/keydude.js"></script>`
 
-## Sample
+### Sample
 
 All functions return a Promise. Using async/await here because it is easier to read.
 
@@ -89,7 +89,7 @@ const decryptedData = await keydude.decrypt(encryptedData, unwrappedKey)
 // sample: { id: 'someid', other: Date.parse('2025-02-06') }
 ```
 
-# Functions
+## Functions
 
 | Function                                                      | Description                                                                                                                                   |
 | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -100,9 +100,9 @@ const decryptedData = await keydude.decrypt(encryptedData, unwrappedKey)
 | `encrypt(dataObject, encryptionDecryptionKey)`                | This will call JSON.stringify, compress, and finally encrypt the provided dataObject.                                                         |
 | `decrypt(encryptedDataObject, encryptionDecryptionKey)`       | Call this on the result of an encrypt call in order to decrypt the object.                                                                    |
 
-# Opinionated
+## Opinionated
 
-## AES-GCM
+### AES-GCM
 
 AES-GCM is used as the algorithm for encryption and decryption as well as wrapping and unwrapping keys.
 
@@ -114,15 +114,15 @@ After hours of research I found that many articles point to AES-GCM as the algor
 
 > _from [Wikipedia article](https://en.wikipedia.org/wiki/Galois/Counter_Mode)_
 
-## base64 encoding
+### base64 encoding
 
 The output of all data that is meant to be stored (everything except the generated keys) is encoded in base64. While this encoding increases the size of the data, it significantly simplifies moving the data around as it uses web safe characters. This means that it is easy to store the data as string in local storage options as well as NoSQL databases as string.
 
-## SHA-256
+### SHA-256
 
 The key used to wrap/unwrap the encryption/decryption keys is generated from a passphrase. A SHA-256 hash is generated from the password which is then used to generate a 256-bit key.
 
-## 96-bit initialization vector
+### 96-bit initialization vector
 
 I was not able to find a reliable source with recommendations for iv length. What I did find was a lot of recommendations to use 96-bits with no documented source. The closest I could find was the following quote from a [NIST report](https://www.nist.gov/).
 
