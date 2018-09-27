@@ -44,6 +44,7 @@
     "encoding",
     "web",
     "web crypto",
+    "webcrypto",
     "utilities",
     "aes-gcm"
   ]
