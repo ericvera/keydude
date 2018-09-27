@@ -41,10 +41,9 @@ describe('Keydude', () => {
       return keydude.wrapKey(TestData.passphrase, iv, key)
     })
 
-    expect(typeof wrappedKey).toEqual('object')
+    expect(typeof wrappedKey).toEqual('string')
     // base64 strings have length that is a multiple of 4
-    expect(wrappedKey.k.length % 4).toBe(0)
-    expect(wrappedKey.iv).toHaveLength(16)
+    expect(wrappedKey.length % 4).toBe(0)
   })
 
   it('should be able to unwrap a key', async () => {
@@ -69,6 +68,8 @@ describe('Keydude', () => {
 
       return keydude.encrypt(TestData.objectToEncrypt, unwrappedKey)
     })
+
+    console.log(`encrypted data: ${encryptedData}`)
 
     expect(typeof encryptedData).toEqual('string')
     // base64 strings have length that is a multiple of 4
