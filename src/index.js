@@ -1,5 +1,4 @@
 const base64js = require('base64-js')
-const LZString = require('lz-string')
 
 // NOTE: Recomended IV size in 96 bits (find source). In the case of a Uint8Array that is 12 elements.
 const IVSIZE = 12
@@ -23,6 +22,20 @@ const toUint8Array = text => {
   }
 
   return array
+}
+
+/**
+ * (Internal) Convests the provided Uint8Array to a string
+ * @param {Uint8Array} uint8Array
+ * @returns {String}
+ */
+const toString = uint8Array => {
+  var str = ''
+  for (var iii = 0; iii < uint8Array.byteLength; iii++) {
+    str += String.fromCharCode(uint8Array[iii])
+  }
+
+  return str
 }
 
 /**
@@ -157,7 +170,7 @@ const unwrapKey = async (passphrase, base64PassphraseIV, wrappedKeyObject) => {
  * This will JSON.stringify, compress, and finally encrypt the provided object.
  * @param {Object} dataObject Object to be encrypted
  * @param {CryptoKey} encryptionDecryptionKey Key used to encrypt the object
- * @returns {Promise<{ed: String, iv: String}>} Object containing, base64 encoded, encrypted data (data) and iv
+ * @returns {Promise<String>} Base64 encoded String. The first 16 characters are the iv. The remaining the data.
  */
 const encrypt = async (dataObject, encryptionDecryptionKey) => {
   // Source : https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/encrypt
@@ -166,9 +179,7 @@ const encrypt = async (dataObject, encryptionDecryptionKey) => {
   const iv = await generateRawIV()
 
   // Stringify and compressthe dataObject
-  const arrayBufferToEncrypt = LZString.compressToUint8Array(
-    JSON.stringify(dataObject)
-  )
+  const arrayBufferToEncrypt = toUint8Array(JSON.stringify(dataObject))
 
   // Define algorithm
   // NOTE: Use AES-GCM based on recommendations at https://en.wikipedia.org/wiki/Galois/Counter_Mode
@@ -182,24 +193,29 @@ const encrypt = async (dataObject, encryptionDecryptionKey) => {
   )
 
   // Convert to base64 for easy storage
-  const dataString = base64js.fromByteArray(new Uint8Array(dataBuffer))
-  const ivString = base64js.fromByteArray(iv)
+  const dataArr = new Uint8Array(dataBuffer)
+  const concatenatedArr = new Uint8Array(dataArr.length + iv.length)
+  concatenatedArr.set(iv)
+  concatenatedArr.set(dataArr, iv.length)
 
-  return { ed: dataString, iv: ivString }
+  return base64js.fromByteArray(concatenatedArr)
 }
 
 /**
  * Call this on the result of an encrypt call in order to decrypt the object.
- * @param {{ed: String, iv: String}} encryptedDataObject Object containing, base64 encoded, encrypted data (data) and iv
+ * @param {String} encryptedData Base64 encoded String (first 16 characters are the iv, the remaining the data)
  * @param {CryptoKey} encryptionDecryptionKey Key used to decrypt the object
  * @returns {Object} Decrypted object (decompressed and JSON.parse called to reverse encrypt process)
  */
-const decrypt = async (encryptedDataObject, encryptionDecryptionKey) => {
+const decrypt = async (encryptedData, encryptionDecryptionKey) => {
   // Source: https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/decrypt
 
   // Convert the data from base64 to byte array
-  const encryptedData = base64js.toByteArray(encryptedDataObject.ed)
-  const encryptedDataIv = base64js.toByteArray(encryptedDataObject.iv)
+  const rawData = base64js.toByteArray(encryptedData)
+  const encryptedDataIv = new Uint8Array(IVSIZE)
+  encryptedDataIv.set(rawData.slice(0, IVSIZE))
+  const encryptedDataContent = new Uint8Array(rawData.length - IVSIZE)
+  encryptedDataContent.set(rawData.slice(IVSIZE))
 
   // Define algorithm
   // NOTE: User AES-GCM based on recommendations at https://en.wikipedia.org/wiki/Galois/Counter_Mode
@@ -209,19 +225,14 @@ const decrypt = async (encryptedDataObject, encryptionDecryptionKey) => {
   const decryptedData = await crypto.subtle.decrypt(
     algorithm,
     encryptionDecryptionKey,
-    encryptedData
+    encryptedDataContent
   )
 
   // Convert to string
-  const decryptedStringifiedObject = LZString.decompressFromUint8Array(
-    new Uint8Array(decryptedData)
-  )
+  const decryptedStringifiedObject = toString(new Uint8Array(decryptedData))
 
   // Convert from stringified back to JSON object
-  const decryptedObject = JSON.parse(decryptedStringifiedObject)
-
-  // Return decrypted object
-  return decryptedObject
+  return JSON.parse(decryptedStringifiedObject)
 }
 
 module.exports = {

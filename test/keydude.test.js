@@ -12,6 +12,10 @@ describe('Keydude', () => {
     await page.addScriptTag({
       content: `${fs.readFileSync('./test/testdata.js')}`
     })
+    await page.on('console', msg => {
+      for (let i = 0; i < msg.args().length; ++i)
+        console.log(`${i}: ${msg.args()[i]}`)
+    })
   })
 
   it('should generate an initiation vector', async () => {
@@ -34,7 +38,7 @@ describe('Keydude', () => {
     const wrappedKey = await page.evaluate(async () => {
       const key = await keydude.generateEncryptionDecryptionKey()
       const iv = await keydude.generateIV()
-      return keydude.wrapKey('123456', iv, key)
+      return keydude.wrapKey(TestData.passphrase, iv, key)
     })
 
     expect(typeof wrappedKey).toEqual('object')
@@ -46,7 +50,7 @@ describe('Keydude', () => {
   it('should be able to unwrap a key', async () => {
     const unwrappedKey = await page.evaluate(async () => {
       return keydude.unwrapKey(
-        '123456',
+        TestData.passphrase,
         TestData.passphraseIV,
         TestData.wrappedKey
       )
@@ -58,7 +62,7 @@ describe('Keydude', () => {
   it('should be able to encrypt an object', async () => {
     const encryptedData = await page.evaluate(async () => {
       const unwrappedKey = await keydude.unwrapKey(
-        '123456',
+        TestData.passphrase,
         TestData.passphraseIV,
         TestData.wrappedKey
       )
@@ -66,10 +70,9 @@ describe('Keydude', () => {
       return keydude.encrypt(TestData.objectToEncrypt, unwrappedKey)
     })
 
-    expect(typeof encryptedData).toEqual('object')
+    expect(typeof encryptedData).toEqual('string')
     // base64 strings have length that is a multiple of 4
-    expect(encryptedData.ed.length % 4).toBe(0)
-    expect(encryptedData.iv).toHaveLength(16)
+    expect(encryptedData.length % 4).toBe(0)
   })
 
   it('should be able to decrypt an encrypted object', async () => {
@@ -79,7 +82,7 @@ describe('Keydude', () => {
 
     const decryptedData = await page.evaluate(async () => {
       const unwrappedKey = await keydude.unwrapKey(
-        '123456',
+        TestData.passphrase,
         TestData.passphraseIV,
         TestData.wrappedKey
       )
