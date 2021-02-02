@@ -1,4 +1,4 @@
-const base64js = require('base64-js')
+import * as base64js from 'base64-js'
 
 // See README.md for more detauls on where these numbers and selections come from
 const ALGORITHM = 'AES-GCM'
@@ -11,7 +11,7 @@ const LENGTHOFKEY = 256
  * @param {String} text
  * @returns {Uint8Array}
  */
-const toUint8Array = text => {
+const toUint8Array = (text: string) => {
   // Adapted from: http://qnimate.com/passphrase-based-encryption-using-web-cryptography-api/
   let array = new Uint8Array(text.length)
   for (let i = 0; i < text.length; i++) {
@@ -26,7 +26,7 @@ const toUint8Array = text => {
  * @param {Uint8Array} uint8Array
  * @returns {String}
  */
-const toString = uint8Array => {
+const toString = (uint8Array: Uint8Array) => {
   // Adapted from: http://qnimate.com/passphrase-based-encryption-using-web-cryptography-api/
   let str = ''
   for (let i = 0; i < uint8Array.byteLength; i++) {
@@ -42,7 +42,10 @@ const toString = uint8Array => {
  * @param {String} base64PassphraseIV A base64 initiation vector used to generate the key.
  * @returns {Promise<CryptoKey>}
  */
-const generateWrappingKey = async (passphrase, base64PassphraseIV) => {
+const generateWrappingKey = async (
+  passphrase: string,
+  base64PassphraseIV: string
+) => {
   const passphraseUint8Array = toUint8Array(passphrase)
   const passphraseIVUint8Array = base64js.toByteArray(base64PassphraseIV)
   const wrapKeyAlgorithm = { name: ALGORITHM, iv: passphraseIVUint8Array }
@@ -77,7 +80,7 @@ const generateIVUint8Array = async () => {
  * Generate a secure 96-bit initialization vector and returns it as a base64 encoded string.
  * @returns {Promise<String>} Base64 encoded initialization vector (IV).
  */
-const generateIV = async () => {
+export const generateIV = async () => {
   const ivUint8Array = await generateIVUint8Array()
 
   return Promise.resolve(base64js.fromByteArray(ivUint8Array))
@@ -88,7 +91,7 @@ const generateIV = async () => {
  * storing the key anywhere and then unwrapKey when you need to use it.
  * @returns {Promise<CryptoKey>}
  */
-const generateEncryptionDecryptionKey = async () => {
+export const generateEncryptionDecryptionKey = async () => {
   return crypto.subtle.generateKey(
     { name: ALGORITHM, length: LENGTHOFKEY },
     true,
@@ -103,7 +106,7 @@ const generateEncryptionDecryptionKey = async () => {
  * @param {CryptoKey} keyToWrap Key to wrap so that it can be stored.
  * @returns {Promise<String>} Base64 encoded String (includes both iv and encrypted key data).
  */
-const wrapKey = async (passphrase, base64PassphraseIV, keyToWrap) => {
+export const wrapKey = async (passphrase:string, base64PassphraseIV: string, keyToWrap: CryptoKey) => {
   const wrappingKey = await generateWrappingKey(passphrase, base64PassphraseIV)
 
   const newIVUint8Array = await generateIVUint8Array()
@@ -136,7 +139,7 @@ const wrapKey = async (passphrase, base64PassphraseIV, keyToWrap) => {
  * @param {String} base64WrappedKey Base64 encoded String (includes both iv and encrypted key data).
  * @returns {Promise<CryptoKey>}
  */
-const unwrapKey = async (passphrase, base64PassphraseIV, base64WrappedKey) => {
+export const unwrapKey = async (passphrase: string, base64PassphraseIV:string, base64WrappedKey:string) => {
   const unwrappingKey = await generateWrappingKey(
     passphrase,
     base64PassphraseIV
@@ -162,7 +165,7 @@ const unwrapKey = async (passphrase, base64PassphraseIV, base64WrappedKey) => {
     unwrappingAlgorithm,
     {
       name: ALGORITHM,
-      length: LENGTHOFKEY
+      length: LENGTHOFKEY,
     },
     false,
     ['encrypt', 'decrypt']
@@ -175,7 +178,7 @@ const unwrapKey = async (passphrase, base64PassphraseIV, base64WrappedKey) => {
  * @param {CryptoKey} encryptionDecryptionKey Key used to encrypt the object.
  * @returns {Promise<String>} Base64 encoded String (includes both iv and encrypted key data).
  */
-const encrypt = async (dataObject, encryptionDecryptionKey) => {
+export const encrypt = async (dataObject:unknown, encryptionDecryptionKey: CryptoKey) => {
   const newIVUint8Array = await generateIVUint8Array()
   const dataToEncryptUint8Array = toUint8Array(JSON.stringify(dataObject))
   const algorithm = { name: ALGORITHM, iv: newIVUint8Array }
@@ -204,7 +207,7 @@ const encrypt = async (dataObject, encryptionDecryptionKey) => {
  * @param {CryptoKey} encryptionDecryptionKey Key used to decrypt the object.
  * @returns {Promise<Object>} Decrypted object (decompressed and JSON.parse called to reverse encrypt process).
  */
-const decrypt = async (base64EncryptedData, encryptionDecryptionKey) => {
+export const decrypt = async (base64EncryptedData: string, encryptionDecryptionKey: CryptoKey) => {
   // Convert the data from base64 to byte array
   const encryptedDataUint8Array = base64js.toByteArray(base64EncryptedData)
   // Extract iv and encrypted data from the combined array
@@ -230,11 +233,3 @@ const decrypt = async (base64EncryptedData, encryptionDecryptionKey) => {
   return JSON.parse(decryptedStringifiedObject)
 }
 
-module.exports = {
-  encrypt,
-  decrypt,
-  generateIV,
-  generateEncryptionDecryptionKey,
-  wrapKey,
-  unwrapKey
-}
