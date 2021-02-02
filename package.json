@@ -5,6 +5,7 @@
   "main": "dist/keydude.js",
   "module": "src/index.js",
   "unpkg": "dist/keydude.js",
+  "types": "dist/index.d.ts",
   "repository": "https://github.com/ericvera/keydude.git",
   "license": "MIT",
   "private": false,
